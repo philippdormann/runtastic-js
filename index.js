@@ -49,7 +49,45 @@ async function getRunSessions({ username, password, from = 0 }) {
             "perPage": "100",
         })
     })
-    return data;
+    return data.sessions.filter(s => !s.deletedAt).map(s => {
+        s.id = parseInt(s.id);
+        s.distance = parseInt(s.distance);
+        s.duration = parseInt(s.duration);
+        s.updatedAt = parseInt(s.updatedAt);
+        s.startTime = parseInt(s.startTime);
+        s.endTime = parseInt(s.endTime);
+        s.calories = parseInt(s.calories);
+        s.elevationGain = parseInt(s.elevationGain);
+        s.elevationLoss = parseInt(s.elevationLoss);
+        s.sportTypeId = parseInt(s.sportTypeId);
+        return s;
+    });
+}
+const average = array => array.reduce((a, b) => a + b) / array.length;
+async function getStats({ username, password, from = 0 }) {
+    const sessions = (await getRunSessions({ username, password, from })).filter(s => s.sportTypeId === 1);
+    const distanceM = sessions.reduce(
+        (s, c) => s + c.distance,
+        0
+    );
+    const duration = sessions.reduce(
+        (s, c) => s + c.duration,
+        0
+    );
+    const avgSpeedKmh = average(sessions.map(s => parseFloat(s.speedData.avg)));
+    const avgPaceSecs = duration / distanceM;
+    const avgPace = avgPaceSecs / 60;
+    const avgHR = average(sessions.map(s => parseInt(s.heartRateData.avg)));
+    const distanceKM = distanceM / 1000;
+    return {
+        distanceM,
+        distanceKM,
+        duration,
+        avgSpeedKmh,
+        avgPace,
+        avgPaceSecs,
+        avgHR,
+    }
 }
 async function getDetails({ username, password, runID }) {
     await login({ username, password });
@@ -65,4 +103,4 @@ async function getDetails({ username, password, runID }) {
     })
     return data;
 }
-export { login, getRunSessions, getDetails }
+export { login, getRunSessions, getDetails, getStats }
